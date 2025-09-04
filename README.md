@@ -1,6 +1,9 @@
 # Computational Swinging Lexical Network (cSLN) - ESCOP 2025
 
-This repository contains the implementation of the Computational Swinging Lexical Network model for analyzing picture-word interference (PWI) tasks in both English and German languages.
+This repository contains the implementation of the Computational Swinging Lexical Network model for analyzing picture-word interference (PWI) tasks in both English and German languages presented in the ESCOP 2025 conference in Sheffield, UK.
+
+
+**Citation:** Schiekiera, L., Gruber, V., Melinger, A., Abdel Rahman, R., & Günther, F. (2025). *Modeling Lexical Competition in Language Production: A Computational Approach to the Swinging Lexical Network*. Poster presented at the European Society for Cognitive Psychology (ESCOP 2025), Location TBD, September. Available at [https://github.com/USERNAME/lexical-network-modeling](https://github.com/USERNAME/lexical-network-modeling)
 
 ## Overview
 
@@ -114,7 +117,3 @@ The pipeline produces:
 - Feature-enriched datasets with Model 2 and Model 3 predictors
 - Statistical model comparisons and performance metrics
 - Cross-validation results across different grouping strategies
-
-## Authors
-
-Research conducted for ESCOP 2025 conference presentation.
