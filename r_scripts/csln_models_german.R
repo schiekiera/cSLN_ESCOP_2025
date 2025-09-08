@@ -8,15 +8,14 @@ rm(list = ls())
 # =============================================================================
 library(dplyr)
 library(lme4)
-library(broom.mixed)  # optional, for tidy model output
-library(performance)  # for R² etc.
-library(lmerTest)     # for p-values (optional)
-library(corrplot)    # for correlation matrix visualization
-library(ggplot2)     # for grid plot histograms
-library(tidyr)       # for pivot_longer
-library(reshape2)  # for melt()
-library(caret)    # for createFolds
-library(ggplot2)
+library(broom.mixed)  
+library(performance) 
+library(lmerTest)     
+library(corrplot)    
+library(ggplot2)     
+library(tidyr)       
+library(reshape2) 
+library(caret)    
 
 # Seed
 set.seed(2025)
@@ -24,29 +23,23 @@ set.seed(2025)
 # =============================================================================
 # 3. Get Data
 # =============================================================================
-data_dir<-"directory"
+data_dir<-"~/Desktop/HU_Berlin_Computational_Modelling/09_cSLN/PWI_data/data/"
 setwd(data_dir)
 
 df <- read.csv("input/pwi_merged_2025-06-24.csv", stringsAsFactors = FALSE)
-csln_measures_german <- read.csv("input/pwi_csln_measures_german_fastText.csv", stringsAsFactors = FALSE)
-csln_measures_english <- read.csv("input/pwi_csln_measures_english_fastText.csv", stringsAsFactors = FALSE)
-
+csln_measures <- read.csv("input/pwi_csln_measures_german_fastText.csv", stringsAsFactors = FALSE)
+colnames(csln_measures)
 # delete target and context column from csln_measures
-csln_measures_german <- csln_measures_german[, -c(2, 3)]
-csln_measures_english <- csln_measures_english[, -c(2, 3)]
+csln_measures <- csln_measures[, -c(2, 3)]
 
 # replace "_q" with "_q0"
-colnames(csln_measures_german) <- gsub("_q", "_q0", colnames(csln_measures_german))
-colnames(csln_measures_german) <- gsub("_q010", "_q10", colnames(csln_measures_german))
-colnames(csln_measures_english) <- gsub("_q", "_q0", colnames(csln_measures_english))
-colnames(csln_measures_english) <- gsub("_q010", "_q10", colnames(csln_measures_english))
+colnames(csln_measures) <- gsub("_q", "_q0", colnames(csln_measures))
+colnames(csln_measures) <- gsub("_q010", "_q10", colnames(csln_measures))
 
-
-
-# drop 
 
 # delete rows where trial is NA
 df <- df[!is.na(df$trial), ]
+
 
 # =============================================================================
 # 4. Define predictors 
@@ -60,7 +53,6 @@ model0_predictors <- c(
   "further_tasks",
   "overt_naming",
   "collection_online",
-  "experimental_language_german",
   
   # target
   "target_length",
@@ -76,12 +68,9 @@ model0_predictors <- c(
 )
 
 model1_predictors<-c(model0_predictors,"cosine_similarity")
-model2_predictors<-c(model1_predictors,colnames(csln_measures_german)[2:11])
-model3_predictors<-c(model2_predictors,colnames(csln_measures_german)[12:length(colnames(csln_measures_german))])
-model3_predictors <- model3_predictors[!grepl("q01", model3_predictors)]
-
-
-
+model2_predictors<-c(model1_predictors,colnames(csln_measures)[2:11])
+model3_predictors<-c(model2_predictors,colnames(csln_measures)[12:length(colnames(csln_measures))])
+colnames(csln_measures)
 # =============================================================================
 # 4. Get Data
 # =============================================================================
@@ -89,25 +78,27 @@ model3_predictors <- model3_predictors[!grepl("q01", model3_predictors)]
 # combine target and context
 df$target_context<-paste0(df$target, "_", df$context)
 
-head(df)
-summary(df[model0_predictors])
-
-
-############################# 
-## G E R M A N    D A T A. ##
-#############################
-
 # german data /english data
 df_german <- df[df$experimental_language_german == "1", ]
 
 # left_join df and csln_measures
-df_german <- left_join(df_german, csln_measures_german, by = c("target_context" = "target_distractor"))
+df_german <- left_join(df_german, csln_measures, by = c("target_context" = "target_distractor"))
 
 # print colnames
 colnames(df_german)
 
 # delete all rows where p1_td is NA
 df_german <- df_german[!is.na(df_german$p1_td), ]
+
+# count cohyponymy
+tab_cohyp<-df_german %>%
+  group_by(study) %>%
+  summarise(
+    n = n(),
+    prop_cohyponymy_1 = mean(cohyponymy == 1, na.rm = TRUE),
+    mean_phonological_distance = mean(phonological_distance, na.rm = TRUE),
+  ) %>%
+  arrange(desc(prop_cohyponymy_1))
 
 # select only semantic studies
 df_german <- df_german[df_german$study %in% c(
@@ -122,83 +113,45 @@ df_german <- df_german[df_german$study %in% c(
   "vogt_2022"
 ), ] 
 
-###############################
-## E N G L I S H    D A T A. ##
-###############################
-
-# english data
-df_english <- df[df$experimental_language_german == "-1", ]
-
-# left_join df and csln_measures
-df_english <- left_join(df_english, csln_measures_english, by = c("target_context" = "target_distractor"))
-
-# print colnames
-colnames(df_english)
-
-# delete all rows where p1_td is NA
-df_english <- df_english[!is.na(df_english$p1_td), ]
-
-df_english <- df_english[df_english$study %in% c(
-  "vieth_2014a",
-  "cutting_1999",
-  "gauvin_2018"
-), ] 
-
-
-###############################
-## C O M B I N E    D A T A. ##
-###############################
-df_model<-rbind(df_english, df_german)
-
+# count number of different target and context
+tab_target_context <- df_german %>%
+  group_by(target_context) %>%
+  summarise(
+    n = n(),
+    mean_log_rt = mean(log_rt, na.rm = TRUE),
+    sd_log_rt = sd(log_rt, na.rm = TRUE)
+  ) %>%
+  arrange(desc(n))
 
 # =============================================================================
-# 5. Scale Model 2 and Model 3 predictors
+# 5 Scale Model 2 and Model 3 predictors
 # =============================================================================
 
 # Identify which columns to scale (all CSLN features only, not baseline predictors)
-model_0_and_1_features_to_be_scaled<-c("SOA","trial","target_length", "context_length", "repetition_target","repetition_context","target_zipf", "context_zipf","cosine_similarity")
-model2_cSLN_features <- colnames(csln_measures_german)[2:11]
-model3_cSLN_features <- colnames(csln_measures_german)[12:length(colnames(csln_measures_german))]
-
-# Scale Model 0 and Model 1 predictors
-df_model[model_0_and_1_features_to_be_scaled] <- scale(df_model[model_0_and_1_features_to_be_scaled])
+model2_cSLN_features <- colnames(csln_measures)[2:11]
+model3_cSLN_features <- colnames(csln_measures)[12:length(colnames(csln_measures))]
 
 # Scale Model 2 predictors
-df_model[model2_cSLN_features] <- scale(df_model[model2_cSLN_features])
+df_german[model2_cSLN_features] <- scale(df_german[model2_cSLN_features])
 
 # Scale Model 3 predictors
-df_model[model3_cSLN_features] <- scale(df_model[model3_cSLN_features])
-
-
-
-# =============================================================================
-# 5. Correlation Matrix
-# =============================================================================
-
+df_german[model3_cSLN_features] <- scale(df_german[model3_cSLN_features])
 
 # Correlation matrix for Model 3 features
-mcor2<-cor(df_model[,model2_cSLN_features], use = "pairwise.complete.obs")
-mcor3<-cor(df_model[,model3_cSLN_features], use = "pairwise.complete.obs")
+mcor2<-cor(df_german[,model2_cSLN_features], use = "pairwise.complete.obs")
+mcor3<-cor(df_german[,model3_cSLN_features], use = "pairwise.complete.obs")
 
 numeric_column<-c()
-for (i in 1:ncol(df_model)) {
-    numeric_column[i]<-is.numeric(df_model[,i])
+for (i in 1:ncol(df_german)) {
+  numeric_column[i]<-is.numeric(df_german[,i])
 }
-
-# correlation matrix for german data
-cor_german<-cor(df_german[numeric_column], use = "pairwise.complete.obs")
-sort(cor_german[,3])
-
-# correlation matrix for english data
-cor_english<-cor(df_english[numeric_column], use = "pairwise.complete.obs")
-sort(cor_english[,3])
-
-
+cor_all_vars<-cor(df_german[numeric_column], use = "pairwise.complete.obs")
+sort(cor_all_vars[,3])
 
 # =============================================================================
 # 6. Define random effects
 # =============================================================================
-random_effects <- "(1 | participant) + (1 | experiment) "
+random_effects <- "(1 | participant) + (1 | experiment)"
 
 # =============================================================================
 # 7. Construct formulas for each model
@@ -219,92 +172,38 @@ model3_formula <- as.formula(
   paste("log_rt ~", paste(model3_predictors, collapse = " + "), "+", random_effects)
 )
 
-
 # =============================================================================
 # 8. Fit the models
 # =============================================================================
-ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5))
 
 cat("Fitting Model 0...\n")
-model0 <- lmer(model0_formula, data = df_model, REML = FALSE)
+model0 <- lmer(model0_formula, data = df_german, REML = FALSE)
 
 cat("Fitting Model 1...\n")
-model1 <- lmer(model1_formula, data = df_model, REML = FALSE)
+model1 <- lmer(model1_formula, data = df_german, REML = FALSE)
 
 cat("Fitting Model 2...\n")
-model2 <- lmer(model2_formula, data = df_model, REML = FALSE)
+model2 <- lmer(model2_formula, data = df_german, REML = FALSE)
 
 cat("Fitting Model 3...\n")
-model3 <- lmer(model3_formula, data = df_model, REML = FALSE)
+model3 <- lmer(model3_formula, data = df_german, REML = FALSE)
 
 # =============================================================================
 # 9. Compare models using likelihood ratio tests
 # =============================================================================
-print("++++++++++----------------------------------++++++++++")
-print("Model comparison using likelihood ratio tests")
-print("++++++++++----------------------------------++++++++++")
 anova_results <- anova(model0, model1, model2, model3)
 print(anova_results)
 
+
+summary(model0)         
+summary(model1)        
+summary(model2)        
+summary(model3)
+
+
 # =============================================================================
-# 10. Summary stats for each model
+# 10. Cross-validation
 # =============================================================================
-model_list <- list(
-  Model0 = model0,
-  Model1 = model1,
-  Model2 = model2,
-  Model3 = model3
-)
-
-print("Summary for each model")
-for (name in names(model_list)) {
-  cat("\n", name, ":\n")
-  print(summary(model_list[[name]]))
-}
-
-
-# collect R² values for all models programmatically
-r2_df <- lapply(names(model_list), function(name) {
-  r2_values <- r2(model_list[[name]])
-  data.frame(
-    model = name,
-    Conditional = r2_values$R2_conditional,
-    Marginal = r2_values$R2_marginal
-  )
-}) %>%
-  bind_rows()
-
-# reshape for ggplot
-r2_long <- r2_df %>%
-  pivot_longer(cols = c(Marginal, Conditional),
-               names_to = "R2_type",
-               values_to = "R2_value")
-
-# 2x1 Grid plot for R²
-ggplot(r2_long, aes(x = model, y = R2_value, group = 1)) +
-  geom_line(size = 1, color="#00376c") +
-  geom_point(size = 3, color="#00376c") +
-  facet_wrap(~ R2_type, nrow = 1, scales = "free_y", 
-             labeller = labeller(R2_type = c(Conditional = "Conditional R²", 
-                                            Marginal = "Marginal R²"))) +
-  labs(
-    y = "R² Value",
-    x = "Model"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    strip.text = element_text(face = "bold"),
-    panel.spacing = unit(1, "cm")
-  )
-
-## ggsave pdf
-#ggsave("output/plots/r2_models.pdf", width = 10, height = 4, dpi = 300)
-
-
-
-####################################
-## C R O S S  V A L I D A T I O N ##
-####################################
 
 # list of model formulas
 model_formula_list <- list(
@@ -424,6 +323,8 @@ cv_summary_all <- bind_rows(cv_participants, cv_experiments, cv_trials)
 print(cv_summary_all)
 
 # =============================================================================
+# 11. Plot cross-validation results
+# =============================================================================
 ggplot(cv_summary_all, aes(x = model, y = mean_RMSE, color = cv_type, group = cv_type)) +
   geom_line(linewidth = 1) +
   geom_point(size = 3) +
@@ -437,8 +338,3 @@ ggplot(cv_summary_all, aes(x = model, y = mean_RMSE, color = cv_type, group = cv
     panel.grid.minor = element_blank(),
     legend.position = "right"
   )
-
-
-
-
-

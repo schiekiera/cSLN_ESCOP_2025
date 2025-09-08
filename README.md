@@ -3,7 +3,7 @@
 This repository contains the implementation of the Computational Swinging Lexical Network model for analyzing picture-word interference (PWI) tasks in both English and German languages presented in the ESCOP 2025 conference in Sheffield, UK.
 
 
-**Citation:** Schiekiera, L., Gruber, V., Melinger, A., Abdel Rahman, R., & Günther, F. (2025). *Modeling Lexical Competition in Language Production: A Computational Approach to the Swinging Lexical Network*. Poster presented at the European Society for Cognitive Psychology (ESCOP 2025), Location TBD, September. Available at [https://github.com/USERNAME/lexical-network-modeling](https://github.com/USERNAME/lexical-network-modeling)
+**Citation:** Schiekiera, L., Gruber, V., Melinger, A., Abdel Rahman, R., & Günther, F. (2025). *Modeling Lexical Competition in Language Production: A Computational Approach to the Swinging Lexical Network*. Poster presented at the European Society for Cognitive Psychology (ESCOP 2025), Sheffield (UK), September 5 2025. Available at [https://github.com/schiekiera/cSLN_ESCOP_2025](https://github.com/schiekiera/cSLN_ESCOP_2025)
 
 ## Overview
 
